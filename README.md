@@ -4,6 +4,8 @@
 
 > 💡 本项目的灵感来源于 [ai-live2d-body](https://github.com/zziying/ai-live2d-body)，感谢该项目提供的思路。
 
+> ⚠️ 这个项目做得比较简陋，UI 和功能都还很粗糙。所以把所有代码全部开源了，欢迎自由二改、魔改、拿去当素材，随意折腾。
+
 ## 原理
 
 ```
@@ -38,18 +40,23 @@
 ## 项目结构
 
 ```
+├── main.py               # AstrBot 插件主文件
+├── metadata.yaml         # 插件元数据
+├── requirements.txt      # 插件 Python 依赖
+├── _conf_schema.json     # 插件配置模板
 ├── android-app/          # Android 桌宠 App 源码（Android Studio 项目）
-├── astrbot-plugin/       # AstrBot 插件源码
 ├── release/              # 预编译的 APK
-│   └── app-debug.apk
+│   └── astrbot-mobile-pet.apk
 └── README.md
 ```
+
+> 仓库根目录本身就是 AstrBot 插件，可以直接通过 GitHub 链接安装。
 
 ## 使用方法
 
 ### 1. 安装 AstrBot 插件
 
-将 `astrbot-plugin/` 目录复制到 AstrBot 的 `data/plugins/` 下，重命名为 `astrbot_plugin_mobile_pet`，重启 AstrBot。
+在 AstrBot 中通过 GitHub 链接直接安装本仓库，或者手动将仓库克隆到 `data/plugins/` 下。
 
 在插件配置中设置：
 - `ws_port`：WebSocket 端口（默认 8765）
