@@ -1,0 +1,16 @@
+# Android
+*.iml
+.gradle/
+build/
+local.properties
+.idea/
+captures/
+.cxx/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db

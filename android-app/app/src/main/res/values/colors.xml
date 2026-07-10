@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_1">#E6D9F7</color>
+    <color name="purple_2">#D8C6F0</color>
+    <color name="blue_soft">#D6E6F2</color>
+    <color name="purple_mid">#B39DDB</color>
+    <color name="purple_deep">#7E57C2</color>
+    <color name="purple_text">#5E35B1</color>
+    <color name="night_top">#2D2155</color>
+    <color name="night_bottom">#4A2D7A</color>
+    <color name="page_bg">#F5F0FA</color>
+    <color name="card_bg">#FFFFFF</color>
+    <color name="text_primary">#3D3252</color>
+    <color name="text_secondary">#9E8FB8</color>
+    <color name="text_on_dark">#F0E8FF</color>
+    <color name="danger">#E57373</color>
+</resources>

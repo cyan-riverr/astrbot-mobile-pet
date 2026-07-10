@@ -1,0 +1,44 @@
+{
+  "ws_host": {
+    "description": "WebSocket 监听地址",
+    "hint": "一般保持 0.0.0.0；仅本机使用可填 127.0.0.1",
+    "type": "string",
+    "default": "0.0.0.0"
+  },
+  "ws_port": {
+    "description": "WebSocket 端口",
+    "hint": "手机桌宠连接的端口，修改后需要同步修改手机端连接地址并重启插件",
+    "type": "int",
+    "default": 1016
+  },
+  "token": {
+    "description": "连接密钥",
+    "hint": "用于验证桌宠客户端，分享给别人前请改成新的随机字符串",
+    "type": "string",
+    "default": "my_secret_token"
+  },
+  "target_unified_msg_origin": {
+    "description": "目标会话 UMO",
+    "hint": "桌宠互动注入的 AstrBot 会话，例如 default:FriendMessage:QQ号",
+    "type": "string",
+    "default": ""
+  },
+  "sender_nickname": {
+    "description": "互动者称呼",
+    "hint": "桌宠上发生互动时，注入消息中对手机使用者的称呼",
+    "type": "string",
+    "default": "user"
+  },
+  "enable_prompt_injection": {
+    "description": "自动注入桌宠标签提示词",
+    "hint": "开启后，模型会自动知道如何发送气泡和切换 GIF 状态",
+    "type": "bool",
+    "default": true
+  },
+  "pet_prompt": {
+    "description": "桌宠标签提示词",
+    "hint": "会自动加入模型的 System prompt，可自行修改标签使用规则和可用状态",
+    "type": "text",
+    "default": "你可以控制已连接的手机桌宠。标签会由插件执行并从最终回复中移除；仅在确实想让桌宠表现动作或显示气泡时自然使用。可用状态：idle、working、touch、hug、feed、bath、sleep、drag、walk；说话只用[pet:bubble:文字]，不要把speak当素材状态。用法组合：①单独说话：[pet:bubble:文字]；②单独切换状态：[pet:状态]；③边切状态边说：[pet:bubble:文字 state=状态]；④单独走路：[pet:walk dx=80 dy=0 duration=5000]；⑤边走边说：[pet:walk dx=80 dy=0 duration=5000 text=要说的话]；⑥请求她分享当前手机屏幕：[pet:request action=screen_share text=想看你的屏幕]。walk参数：dx左右位移、dy上下位移、duration移动时长毫秒，walk时状态自动切换为walk动画无需额外指定state。"
+  }
+}
