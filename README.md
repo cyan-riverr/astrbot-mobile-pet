@@ -59,7 +59,7 @@
 在 AstrBot 中通过 GitHub 链接直接安装本仓库，或者手动将仓库克隆到 `data/plugins/astrbot_plugin_mobile_pet/` 下。
 
 在插件配置中设置：
-- `ws_port`：WebSocket 端口（默认 8765）
+- `ws_port`：WebSocket 端口（默认 1016）
 - `target_unified_msg_origin`：目标会话标识（格式：`platform:message_type:session_id`）
 - `sender_nickname`：桌宠消息的发送者昵称
 
@@ -68,7 +68,7 @@
 从 `release/` 目录下载 APK 安装，或自行用 Android Studio 编译 `android-app/` 源码。
 
 打开 App 后：
-1. 输入 AstrBot 服务器的 WebSocket 地址（如 `ws://192.168.1.100:8765/pet`）
+1. 输入 AstrBot 服务器的 WebSocket 地址（如 `ws://192.168.1.100:1016/pet`）
 2. 点击"启动桌宠"
 3. 授予悬浮窗权限
 4. 可选：在设置中为各状态配置自定义素材图片
