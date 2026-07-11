@@ -569,7 +569,7 @@ public class PetOverlayService extends Service {
             return;
         }
         try {
-            windowManager.updateViewLayout(petView, params);
+            safeUpdateViewLayout();
         } catch (IllegalArgumentException exc) {
             petView = null;
             params = null;
@@ -606,7 +606,7 @@ public class PetOverlayService extends Service {
                     params.x = startX + Math.round(event.getRawX() - downX);
                     params.y = startY + Math.round(event.getRawY() - downY);
                     clampToScreen();
-                    windowManager.updateViewLayout(petView, params);
+                    safeUpdateViewLayout();
                 }
                 return true;
             case MotionEvent.ACTION_UP:
@@ -620,7 +620,7 @@ public class PetOverlayService extends Service {
                     params.x = startX;
                     params.y = startY;
                     clampToScreen();
-                    windowManager.updateViewLayout(petView, params);
+                    safeUpdateViewLayout();
                 }
                 if (menuAdded) {
                     hideActionMenu();
@@ -734,7 +734,7 @@ public class PetOverlayService extends Service {
                 params.x = originX + Math.round(targetDx * progress);
                 params.y = originY + Math.round(targetDy * progress);
                 clampToScreen();
-                windowManager.updateViewLayout(petView, params);
+                safeUpdateViewLayout();
                 updateBubbleWindowPosition();
                 left[0]--;
                 mainHandler.postDelayed(this, 55);
@@ -765,7 +765,7 @@ public class PetOverlayService extends Service {
                 params.x = originX + Math.round(targetDx * progress);
                 params.y = originY + Math.round(targetDy * progress);
                 clampToScreen();
-                windowManager.updateViewLayout(petView, params);
+                safeUpdateViewLayout();
                 updateBubbleWindowPosition();
                 if (progress < 1f) {
                     mainHandler.postDelayed(this, 55);
@@ -776,6 +776,11 @@ public class PetOverlayService extends Service {
             }
         };
         mainHandler.post(walker);
+    }
+
+    private void safeUpdateViewLayout() {
+        if (petView == null || windowManager == null || !petView.isAttachedToWindow()) return;
+        try { windowManager.updateViewLayout(petView, params); } catch (Exception ignored) {}
     }
 
     private void clampToScreen() {
