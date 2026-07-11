@@ -477,7 +477,7 @@ class PetWebSocketServer:
 class MobilePetPlugin(Star):
     PET_ONLY_TAG = "[pet_only]"
     PET_ONLY_ACTIONS = {"chat", "screen_snapshot", "request_response"}
-    PET_TAG_RE = re.compile(r"\[pet:(say|request|walk)\s*([^\]]*)\]")
+    PET_TAG_RE = re.compile(r"\[pet:(say|bubble|request|walk)(?::|\s+)?([^\]]*)\]")
     PET_SIMPLE_TAG_RE = re.compile(r"\[\s*(?:pet|桌宠)\s*[:：]\s*([^\]]+?)\s*\]")
 
     def __init__(self, context: Context, config: dict[str, Any] | None = None) -> None:
@@ -628,7 +628,7 @@ class MobilePetPlugin(Star):
             kind = match.group(1)
             raw_args = match.group(2) or ""
             args = self._parse_pet_tag_args(raw_args)
-            if kind == "say":
+            if kind in ("say", "bubble"):
                 bubble = args.get("text") or args.get("bubble") or ""
                 if bubble:
                     payloads.append({
