@@ -31,29 +31,33 @@ logger = logging.getLogger("astrbot_plugin_mobile_pet")
 
 VALID_STATES = {"idle", "working", "touch", "hug", "feed", "bath", "sleep", "drag", "walk"}
 
+DEFAULT_CONFIG: dict[str, Any] = {
+    "ws_host": "0.0.0.0",
+    "ws_port": 1016,
+    "token": "my_secret_token",
+    "target_unified_msg_origin": "",
+    "sender_nickname": "user",
+    "reply_split_regex": r"[^$\n\\]+",
+    "reply_split_delay_ms": 250,
+    "enable_prompt_injection": True,
+    "pet_prompt": (
+        "你可以控制已连接的手机桌宠。标签会由插件执行并从最终回复中移除；仅在确实想让桌宠表现动作或显示气泡时自然使用。"
+        "可用状态：idle、working、touch、hug、feed、bath、sleep、drag、walk；说话只用[pet:bubble:文字]，不要把speak当素材状态。"
+        "用法组合："
+        "①单独说话：[pet:bubble:文字]；"
+        "②单独切换状态：[pet:状态]；"
+        "③边切状态边说：[pet:bubble:文字 state=状态]；"
+        "④单独走路：[pet:walk dx=80 dy=0 duration=5000]；"
+        "⑤边走边说：[pet:walk dx=80 dy=0 duration=5000 text=要说的话]；"
+        "⑥请求她分享当前手机屏幕：[pet:request action=screen_share text=想看你的屏幕]。"
+        "walk参数：dx左右位移、dy上下位移、duration移动时长毫秒，walk时状态自动切换为walk动画无需额外指定state。"
+    ),
+}
+
 
 def load_config(plugin_dir: str) -> dict[str, Any]:
     conf_path = os.path.join(plugin_dir, "_conf.json")
-    default: dict[str, Any] = {
-        "ws_host": "0.0.0.0",
-        "ws_port": 1016,
-        "token": "my_secret_token",
-        "target_unified_msg_origin": "",
-        "sender_nickname": "user",
-        "enable_prompt_injection": True,
-        "pet_prompt": (
-            "你可以控制已连接的手机桌宠。标签会由插件执行并从最终回复中移除；仅在确实想让桌宠表现动作或显示气泡时自然使用。"
-            "可用状态：idle、working、touch、hug、feed、bath、sleep、drag、walk；说话只用[pet:bubble:文字]，不要把speak当素材状态。"
-            "用法组合："
-            "①单独说话：[pet:bubble:文字]；"
-            "②单独切换状态：[pet:状态]；"
-            "③边切状态边说：[pet:bubble:文字 state=状态]；"
-            "④单独走路：[pet:walk dx=80 dy=0 duration=5000]；"
-            "⑤边走边说：[pet:walk dx=80 dy=0 duration=5000 text=要说的话]；"
-            "⑥请求她分享当前手机屏幕：[pet:request action=screen_share text=想看你的屏幕]。"
-            "walk参数：dx左右位移、dy上下位移、duration移动时长毫秒，walk时状态自动切换为walk动画无需额外指定state。"
-        ),
-    }
+    default = DEFAULT_CONFIG.copy()
 
     if os.path.exists(conf_path):
         try:
@@ -476,10 +480,9 @@ class MobilePetPlugin(Star):
 
     def __init__(self, context: Context, config: dict[str, Any] | None = None) -> None:
         super().__init__(context, config)
-        self.config: dict[str, Any] = config or {}
-        if not self.config:
-            plugin_dir = os.path.dirname(os.path.abspath(__file__))
-            self.config = load_config(plugin_dir)
+        plugin_dir = os.path.dirname(os.path.abspath(__file__))
+        loaded_config = config or load_config(plugin_dir)
+        self.config: dict[str, Any] = {**DEFAULT_CONFIG, **loaded_config}
         self.ws_server: PetWebSocketServer | None = None
         self._task: asyncio.Task | None = None
 
@@ -580,18 +583,56 @@ class MobilePetPlugin(Star):
             result.chain.clear()
             event.stop_event()
             return
+
         bubble_text = re.sub(r"\[NEXT:[^\]]+\]", "", text).strip()
-        bubble_text = re.sub(r"\s+", " ", bubble_text)
-        sent = await self.ws_server.broadcast({
-            "type": "reply",
-            "state": "speak",
-            "text": text,
-            "bubble": bubble_text,
-            "duration": 5000,
-        })
+        parts = self._split_pet_reply(bubble_text)
+        if not parts:
+            result.chain.clear()
+            event.stop_event()
+            return
+
+        delay_ms = self._get_reply_split_delay_ms()
+        sent = 0
+        for index, part in enumerate(parts):
+            sent += await self.ws_server.broadcast({
+                "type": "reply",
+                "state": "speak",
+                "text": part,
+                "bubble": part,
+                "duration": 5000,
+            })
+            if delay_ms > 0 and index < len(parts) - 1:
+                await asyncio.sleep(delay_ms / 1000)
+
         result.chain.clear()
         event.stop_event()
-        logger.info("[mobile_pet] mirrored pet reply to %d client(s): action=%s text=%s", sent, action, text[:120])
+        logger.info(
+            "[mobile_pet] mirrored pet reply to %d client(s): action=%s parts=%d text=%s",
+            sent,
+            action,
+            len(parts),
+            text[:120],
+        )
+
+    def _split_pet_reply(self, text: str) -> list[str]:
+        if not text:
+            return []
+        pattern = str(self.config.get("reply_split_regex") or DEFAULT_CONFIG["reply_split_regex"]).strip()
+        if not pattern:
+            return [re.sub(r"\s+", " ", text).strip()]
+        try:
+            parts = re.findall(pattern, text)
+        except re.error as exc:
+            logger.warning("[mobile_pet] invalid reply_split_regex=%r: %s", pattern, exc)
+            return [re.sub(r"\s+", " ", text).strip()]
+        cleaned = [re.sub(r"\s+", " ", part).strip() for part in parts if part and part.strip()]
+        return cleaned or [re.sub(r"\s+", " ", text).strip()]
+
+    def _get_reply_split_delay_ms(self) -> int:
+        try:
+            return max(0, int(self.config.get("reply_split_delay_ms", 250) or 0))
+        except (TypeError, ValueError):
+            return 250
 
     def _extract_plain_reply_text(self, chain: list[Any]) -> str:
         pieces: list[str] = []

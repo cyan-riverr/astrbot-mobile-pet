@@ -29,6 +29,18 @@
     "type": "string",
     "default": "user"
   },
+  "reply_split_regex": {
+    "description": "桌宠回复分段正则",
+    "hint": "AI 通过桌宠回复时，按该正则 findall 拆成多个气泡；默认匹配不含 $、换行和反斜杠的连续文本",
+    "type": "string",
+    "default": "[^$\\n\\\\]+"
+  },
+  "reply_split_delay_ms": {
+    "description": "桌宠分段发送间隔毫秒",
+    "hint": "多个气泡之间的发送间隔，设为 0 可关闭延迟",
+    "type": "int",
+    "default": 250
+  },
   "enable_prompt_injection": {
     "description": "自动注入桌宠标签提示词",
     "hint": "开启后，模型会自动知道如何发送气泡和切换 GIF 状态",
