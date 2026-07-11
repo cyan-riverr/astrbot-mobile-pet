@@ -56,7 +56,9 @@
 
 ### 1. 安装 AstrBot 插件
 
-在 AstrBot 中通过 GitHub 链接直接安装本仓库，或者手动将仓库克隆到 `data/plugins/` 下。
+在 AstrBot 中通过 GitHub 链接直接安装本仓库，或者手动将仓库克隆到 `data/plugins/astrbot_plugin_mobile_pet/` 下。
+
+插件识别名是 `astrbot_plugin_mobile_pet`，以 `metadata.yaml` 的 `name` 字段为准；仓库名 `astrbot-mobile-pet` 不影响 AstrBot 识别。
 
 在插件配置中设置：
 - `ws_port`：WebSocket 端口（默认 8765）
