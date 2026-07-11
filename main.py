@@ -473,7 +473,7 @@ class PetWebSocketServer:
         return "speak"
 
 
-@register("astrbot_plugin_mobile_pet", "pet_dev", "手机桌宠 WebSocket 插件", "1.1.0")
+@register("astrbot_plugin_mobile_pet", "cyanriver", "手机桌宠 WebSocket 插件", "1.1.0")
 class MobilePetPlugin(Star):
     PET_ONLY_TAG = "[pet_only]"
     PET_ONLY_ACTIONS = {"chat", "screen_snapshot", "request_response"}
