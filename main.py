@@ -1,7 +1,7 @@
 """Mobile GIF pet bridge for AstrBot.
 
 The Android pet connects over WebSocket. Touch interactions are converted into
-synthetic QQ private-message events and committed to AstrBot's normal pipeline.
+synthetic AstrBot message events and committed to AstrBot's normal pipeline.
 """
 
 from __future__ import annotations
@@ -292,9 +292,6 @@ class PetWebSocketServer:
             logger.error("[mobile_pet] %s", exc)
             return False
 
-        if "Friend" not in message_type_str:
-            logger.warning("[mobile_pet] only QQ private sessions are supported: %s", umo)
-            return False
 
         platform = self.star_context.get_platform_inst(platform_id)
         if platform is None:
@@ -318,7 +315,7 @@ class PetWebSocketServer:
             "_mobile_pet_inject": True,
             "source": "mobile_pet",
             "action": action,
-            "message_type": "private",
+            "message_type": message_type_str,
             "raw_message": text,
             "user_id": session_id,
             "time": timestamp,
@@ -377,9 +374,6 @@ class PetWebSocketServer:
             logger.error("[mobile_pet] %s", exc)
             return False
 
-        if "Friend" not in message_type_str:
-            logger.warning("[mobile_pet] only QQ private sessions are supported: %s", umo)
-            return False
 
         platform = self.star_context.get_platform_inst(platform_id)
         if platform is None:
@@ -403,7 +397,7 @@ class PetWebSocketServer:
             "_mobile_pet_inject": True,
             "source": "mobile_pet",
             "action": action,
-            "message_type": "private",
+            "message_type": message_type_str,
             "raw_message": text,
             "image_path": image_path,
             "user_id": session_id,

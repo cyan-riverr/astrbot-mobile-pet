@@ -19,7 +19,7 @@
   },
   "target_unified_msg_origin": {
     "description": "目标会话 UMO",
-    "hint": "桌宠互动注入的 AstrBot 会话，例如 default:FriendMessage:QQ号",
+    "hint": "桌宠互动注入的 AstrBot 会话 UMO，例如 default:FriendMessage:QQ号，或其他平台适配器提供的 UMO",
     "type": "string",
     "default": ""
   },
