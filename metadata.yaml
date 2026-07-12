@@ -1,7 +1,8 @@
 name: astrbot_plugin_mobile_pet
 desc: 手机 GIF 桌宠 WebSocket 插件，互动事件注入 AstrBot pipeline
-version: 1.1.0
+version: 1.2.0
 author: cyanriver
 repo: https://github.com/cyan-riverr/astrbot-mobile-pet
+min_astrbot_version: 4.26.3
 support_platforms:
   - aiocqhttp

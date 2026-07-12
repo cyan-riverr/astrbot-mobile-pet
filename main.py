@@ -474,7 +474,7 @@ class PetWebSocketServer:
 @register("astrbot_plugin_mobile_pet", "cyanriver", "手机桌宠 WebSocket 插件", "1.1.0")
 class MobilePetPlugin(Star):
     PET_ONLY_TAG = "[pet_only]"
-    PET_ONLY_ACTIONS = {"chat", "screen_snapshot", "request_response"}
+    PET_ONLY_ACTIONS = {"chat", "screen_snapshot", "system_audio", "request_response"}
     PET_TAG_RE = re.compile(r"\[pet:(say|bubble|request|walk)(?::|\s+)?([^\]]*)\]")
     PET_SIMPLE_TAG_RE = re.compile(r"\[\s*(?:pet|桌宠)\s*[:：]\s*([^\]]+?)\s*\]")
 
