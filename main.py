@@ -22,7 +22,7 @@ import websockets
 from websockets.server import WebSocketServerProtocol
 
 from astrbot.api.event import AstrMessageEvent, filter
-from astrbot.api.message_components import Image, Plain
+from astrbot.api.message_components import Image, Plain, Record
 from astrbot.api.platform import AstrBotMessage, MessageMember, MessageType
 from astrbot.api.provider import LLMResponse, ProviderRequest
 from astrbot.api.star import Context, Star, register
@@ -49,7 +49,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "③边切状态边说：[pet:bubble:文字 state=状态]；"
         "④单独走路：[pet:walk dx=80 dy=0 duration=5000]；"
         "⑤边走边说：[pet:walk dx=80 dy=0 duration=5000 text=要说的话]；"
-        "⑥请求她分享当前手机屏幕：[pet:request action=screen_share text=想看你的屏幕]。"
+        "⑥请求她分享当前手机屏幕：[pet:request action=screen_share text=想看你的屏幕]；"
+        "⑦请求录一段手机内部声音：[pet:request action=system_audio text=想听一下你手机里的声音]。"
         "walk参数：dx左右位移、dy上下位移、duration移动时长毫秒，walk时状态自动切换为walk动画无需额外指定state。"
     ),
 }
@@ -206,6 +207,13 @@ class PetWebSocketServer:
             if msg_id:
                 await self.send_to(websocket, {"type": "ack", "msg_id": msg_id, "status": "ok" if ok else "error"})
             return
+
+        if msg_type == "system_audio":
+            ok = await self.handle_system_audio(data)
+            if msg_id:
+                await self.send_to(websocket, {"type": "ack", "msg_id": msg_id, "status": "ok" if ok else "error"})
+            return
+
         if msg_type == "request_response":
             action = str(data.get("action") or "response")
             status = str(data.get("status") or "accepted")
@@ -221,6 +229,7 @@ class PetWebSocketServer:
                 "call": "叫你请求",
                 "screen_share": "屏幕共享请求",
                 "screen_snapshot": "屏幕共享请求",
+                "system_audio": "手机声音录制请求",
             }.get(action, f"{action} 请求")
             sender_name = str(self.config.get("sender_nickname") or "user")
             verb = "拒绝了" if status == "rejected" else "回应了"
@@ -365,6 +374,92 @@ class PetWebSocketServer:
         sender_name = str(self.config.get("sender_nickname") or "对方")
         caption = str(data.get("caption") or f"[pet-screen] {sender_name}给你看了当前手机屏幕")
         return await self.inject_mobile_pet_image_message(caption, image_path, action="screen_snapshot")
+
+    async def handle_system_audio(self, data: dict[str, Any]) -> bool:
+        audio_base64 = str(data.get("audio_base64") or data.get("audio") or "")
+        if not audio_base64:
+            logger.warning("[mobile_pet] system_audio missing audio_base64")
+            return False
+
+        mime = str(data.get("mime") or "audio/wav").lower()
+        ext = "wav"
+        if "mpeg" in mime or "mp3" in mime:
+            ext = "mp3"
+        elif "ogg" in mime or "opus" in mime:
+            ext = "ogg"
+        elif "m4a" in mime or "aac" in mime or "mp4" in mime:
+            ext = "m4a"
+
+        plugin_dir = os.path.dirname(os.path.abspath(__file__))
+        temp_dir = os.path.join(plugin_dir, "pet_audio")
+        os.makedirs(temp_dir, exist_ok=True)
+        audio_path = os.path.join(temp_dir, f"system_audio_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}.{ext}")
+        try:
+            with open(audio_path, "wb") as f:
+                f.write(base64.b64decode(audio_base64))
+        except Exception as exc:  # noqa: BLE001
+            logger.error("[mobile_pet] save system audio failed: %s", exc, exc_info=True)
+            return False
+
+        sender_name = str(self.config.get("sender_nickname") or "对方")
+        caption = str(data.get("caption") or f"[pet-system-audio] [手机声音] {sender_name}通过桌宠录了一段手机内部声音。这段音频来自手机播放或系统声音，不等于{sender_name}本人说话。")
+        return await self.inject_mobile_pet_record_message(caption, audio_path, action="system_audio")
+
+    async def inject_mobile_pet_record_message(self, text: str, audio_path: str, action: str = "") -> bool:
+        umo = str(self.config.get("target_unified_msg_origin") or "").strip()
+        if not umo:
+            logger.warning("[mobile_pet] target_unified_msg_origin is not configured")
+            return False
+
+        try:
+            platform_id, message_type_str, session_id = parse_umo(umo)
+        except ValueError as exc:
+            logger.error("[mobile_pet] %s", exc)
+            return False
+
+        platform = self.star_context.get_platform_inst(platform_id)
+        if platform is None:
+            logger.warning("[mobile_pet] platform not found: %s", platform_id)
+            return False
+
+        timestamp = int(time.time())
+        message = AstrBotMessage()
+        message.message_str = text
+        message.message = [Plain(text), Record(file=audio_path)]
+        message.type = MessageType.FRIEND_MESSAGE
+        message.self_id = str(getattr(platform, "client_self_id", "") or "")
+        message.session_id = session_id
+        message.sender = MessageMember(
+            user_id=session_id,
+            nickname=str(self.config.get("sender_nickname") or "user"),
+        )
+        message.message_id = f"mobile_pet_audio_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}"
+        message.timestamp = timestamp
+        message.raw_message = {
+            "_mobile_pet_inject": True,
+            "source": "mobile_pet",
+            "action": action,
+            "message_type": message_type_str,
+            "raw_message": text,
+            "audio_path": audio_path,
+            "user_id": session_id,
+            "time": timestamp,
+        }
+
+        try:
+            event = platform.create_event(message)
+            event.is_wake = True
+            event.is_at_or_wake_command = True
+            event.set_extra("source", "mobile_pet")
+            event.set_extra("_mobile_pet_inject", True)
+            event.set_extra("mobile_pet_action", action)
+            platform.commit_event(event)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("[mobile_pet] record inject failed: %s", exc, exc_info=True)
+            return False
+
+        logger.info("[mobile_pet] injected system audio: umo=%s path=%s", umo, audio_path)
+        return True
 
     async def inject_mobile_pet_image_message(self, text: str, image_path: str, action: str = "") -> bool:
         umo = str(self.config.get("target_unified_msg_origin") or "").strip()
@@ -551,7 +646,6 @@ class MobilePetPlugin(Star):
             self._replace_plain_reply_text(result.chain, clean_text)
             if not clean_text:
                 result.chain.clear()
-                event.stop_event()
 
         if event.get_extra("mobile_pet_tags_dispatched"):
             logger.info("[mobile_pet] stripped %d already-dispatched pet tag(s) from decorating_result", len(payloads))
@@ -581,14 +675,12 @@ class MobilePetPlugin(Star):
         text = self._extract_plain_reply_text(result.chain)
         if not text:
             result.chain.clear()
-            event.stop_event()
             return
 
         bubble_text = re.sub(r"\[NEXT:[^\]]+\]", "", text).strip()
         parts = self._split_pet_reply(bubble_text)
         if not parts:
             result.chain.clear()
-            event.stop_event()
             return
 
         delay_ms = self._get_reply_split_delay_ms()
@@ -605,7 +697,6 @@ class MobilePetPlugin(Star):
                 await asyncio.sleep(delay_ms / 1000)
 
         result.chain.clear()
-        event.stop_event()
         logger.info(
             "[mobile_pet] mirrored pet reply to %d client(s): action=%s parts=%d text=%s",
             sent,
@@ -808,6 +899,14 @@ class MobilePetPlugin(Star):
             "screen_snapshot": "screen_share",
             "share_screen": "screen_share",
             "screenshot": "screen_share",
+            "audio": "system_audio",
+            "sound": "system_audio",
+            "listen": "system_audio",
+            "listen_audio": "system_audio",
+            "system_sound": "system_audio",
+            "听声音": "system_audio",
+            "录声音": "system_audio",
+            "内录": "system_audio",
         }.get(action, action)
 
     def _state_for_action(self, action: str) -> str:
@@ -907,6 +1006,10 @@ class MobilePetPlugin(Star):
             "poke": "poke",
             "叫我": "call",
             "call": "call",
+            "听声音": "system_audio",
+            "录声音": "system_audio",
+            "system_audio": "system_audio",
+            "内录": "system_audio",
         }
         action = action_aliases.get(raw_action, raw_action)
         default_text = {

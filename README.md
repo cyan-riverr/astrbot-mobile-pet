@@ -21,6 +21,7 @@
 - 通过 WebSocket 连接 AstrBot 插件，实时收发消息
 - 支持自定义素材（GIF/静态图），为不同状态（idle/touch/hug/feed/sleep 等）设置不同形象
 - 内置屏幕共享功能：通过 MediaProjection API 截取当前屏幕，经 WebSocket 发送给 AI
+- 内置手机内部声音录制功能：可由 AI 请求录制当前手机播放/系统声音片段并注入 AstrBot 会话
 - 内置聊天输入框，可直接在桌宠气泡中与 AI 对话
 - 菜单面板提供快捷交互（戳戳/抱抱/摸摸/投喂/叫你/聊天）
 
@@ -36,6 +37,7 @@
   - `[pet:walk dx=X dy=Y duration=毫秒]` — 控制桌宠移动
   - `[pet:walk dx=X dy=Y duration=毫秒 text=文字]` — 边走边说
   - `[pet:request action=screen_share text=文字]` — 请求用户共享屏幕
+  - `[pet:request action=system_audio text=文字]` — 请求用户录制手机内部声音片段
 
 ## 项目结构
 
